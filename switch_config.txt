@@ -1,0 +1,56 @@
+hostname S1
+enable secret class
+service password-encryption
+no ip domain-lookup
+sdm prefer dual-ipv4-and-ipv6 default
+banner motd "Authorized access only! Violators will be prosecuted to the full extent of the law."
+ip domain-name netauto.com
+crypto key generate rsa modulus 1024
+ip ssh version 2
+username admin privilege 15 secret cisco
+line con 0
+ login local
+ logging synchronous
+ transport preferred none
+ exec-timeout 0 0
+line vty 0 15
+ login local
+ logging synchronous
+ transport preferred none
+ transport input all
+ exec-timeout 15 0
+ exit
+vlan 10
+ name TEACHERS
+vlan 20
+ name STUDENTS
+vlan 30
+ name ADMINISTRATORS
+vlan 999
+ name NATIVE
+interface vlan 1
+ ip address 192.168.1.254 255.255.255.0
+ no shutdown
+ exit
+ip default-gateway 192.168.1.1
+interface range fa0/1 - 24
+ description LAN Access Port
+ no shutdown
+ switchport mode access
+ switchport access vlan 1
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation shutdown
+ switchport port-security mac-address sticky
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ exit
+errdisable recovery cause psecure-violation
+errdisable recovery interval 60
+interface gi0/2
+ description Trunking Ports
+ switchport mode trunk
+ switchport trunk allowed vlan all
+ switchport trunk native vlan 999
+ exit
+

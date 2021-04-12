@@ -1,0 +1,51 @@
+enable
+conf t
+hostname R1
+enable secret class
+service password-encryption
+no ip domain lookup
+banner motd "Authorized access only! Violators will be prosecuted to the full extent of the law."
+ip domain name netauto.com
+crypto key generate rsa modulus 1024
+ip ssh version 2
+username admin privilege 15 secret cisco
+line con 0
+ login local
+ logging synchronous
+ transport preferred none
+ exec-timeout 0 0
+line vty 0 15
+ transport preferred none
+ transport input all
+ login local
+ logging synchronous
+ exec-timeout 15 0
+ exit
+ipv6 unicast-routing
+ipv6 router rip 1
+ exit
+interface lo3
+ ip address 4.4.4.4 255.255.255.255
+ ipv6 address 2001:1::4/64
+ ipv6 address fe80::1 link-local
+ ipv6 rip 1 enable
+interface g0/0
+ description Link to S1
+ ip address 192.168.1.1 255.255.255.0
+ ipv6 address 2001:db8:acad::1/64
+ ipv6 address fe80::1 link-local
+ ipv6 rip 1 enable
+ no shutdown
+ exit
+router rip
+ version 2
+ no auto-summary
+ network 1.1.1.1
+ network 2.2.2.2
+ network 3.3.3.3
+ network 4.4.4.4
+ network 192.168.1.0
+ exit
+ip route 0.0.0.0 0.0.0.0 g0/0
+ipv6 route ::/0 g0/0
+exit
