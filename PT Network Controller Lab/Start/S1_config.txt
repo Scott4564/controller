@@ -1,0 +1,21 @@
+enable
+configure terminal 
+hostname S1
+enable secret class
+username admin password cisco 
+ip domain-name netauto.com 
+crypto key generate rsa
+1024
+ip ssh version 2 
+interface vlan 1
+ip address 192.168.1.2 255.255.255.0
+no shutdown exit
+ip default-gateway 192.168.1.1
+line con 0 
+login local 
+line vty 0 
+login local
+transport input all 
+end
+terminal length 0
+copy run start
