@@ -1,0 +1,803 @@
+<html>
+<body>
+<div style="font-family:arial; font-size:14pt;">
+    <h1 style="color:#cc0000;">Network Automation with Python</h1>
+    <p>The networking industry is telling us all that we need to learn Python, programmability, and network automation. But for most of us using the CLI nothing has changed, and we are thinking what is all the fuss about? Using Python for Network Automation
+        is a skill that all network engineers need to be developing. This lab will walk you through several different scenarios using Python to automate your network. This is a precursor to using Ansible, Nornir, and the DevNet course.</p>
+    <h3>Equipment</h3>
+    <ul>
+        <li>One 2960 or later Switch running with K9 encryption (SSH capable)</li>
+        <li>One 1841, 1941, 4000 series or later Router running with K9 encryption (SSH capable)</li>
+        <li>Three Straight-thru cables</li>
+        <li>One Rollover cable for initial configuration</li>
+    </ul>
+    <h3>Software</h3>
+    <ul>
+        <li>Python3 (latest version)</li>
+        <li>PiP3 (latest version)</li>
+        <li>Git (latest version)</li>
+        <li>Netmiko (latest version)</li>
+        <li>Visual Studio Code (any text editor like Nano) to edit Python code</li>
+        <li>Django web server (latest version)</li>
+        <li>json2html</li>
+    </ul>
+    <h3>Netmiko connection setup methods:</h3>
+    <ul>
+        <li>device_type â€“ Types of Cisco device software (cisco_ios, cisco_ios_telnet, cisco_asa, cisco_ios-xe, cisco_ios-xr, cisco_nx-os)</li>
+        <li>ip â€“ IP address of the Router or Switch (host is interchangeable)</li>
+        <li>username â€“ account name (if configured)</li>
+        <li>password â€“ account login password</li>
+        <li>port â€“ telnet: 23 or SSH: 22 (configured by default)</li>
+        <li>secret â€“ Privileged mode password (if configured)</li>
+        <li>command â€“ Configuration commands</li>
+    </ul>
+    <h3>Netmiko common connection methods:</h3>
+    <ul>
+        <li>send_command() - Send command to a device and return output back (pattern based)</li>
+        <li>send_config_set() - Send configuration commands to remote device</li>
+        <li>send_config_from_file() - Send configuration commands loaded from a file</li>
+        <li>enable() - Enter enable mode</li>
+        <li>find_prompt() - Return the current router prompt</li>
+        <li>save_config() - Save the running-config to the startup-config</li>
+        <li>disconnect() - Close the connection</li>
+        <li>send_command_expect() - Wait for a command to finish (timing based)</li>
+        <li>send_command_timing() - Send commands to a device and return output back (timing based)</li>
+        <li>commit() - Execute a commit action on IOS-XR</li>
+        <li>check_config_mode() - Check config mode status</li>
+        <li>check_enable_mode() - Check</li>
+        <li>exit_config_mode() - Exit Global Configuration</li>
+        <li>exit_enable_mode() - Exit Privileged mode</li>
+    </ul>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 1: Basic Switch and Router Configuration</h2>
+    <h3>Topology</h3>
+    <img src="./Automation_Topology.jpg" alt="Topology" style="width:800px;"><br>
+    <ol>
+        <li>You should have two interfaces. One to the internet and one to the practice network. Configure the practice network adaptor with the information below:
+            <p><span style="text-decoration:underline; font-weight:bold;">Host PC</span><br>
+                <span style="font-family:Consolas, Courier New; font-weight:bold;">
+            IP address: 192.168.1.10<br>
+            SM: 255.255.255.0<br>
+            DG: 192.168.1.1</span></p><br>
+        </li>
+        <li>From the Ubuntu terminal, check the IP configuration (ip address).<br><br></li>
+        <li>Each network device needs a basic configuration before starting to gain access over the network. Using a rollover cable and your preferred terminal app (PuTTY, HyperTerminal), configure a basic router and switch with SSH capabilities:<br>
+        Note: Only configure these settings (interfaces may vary).<br>
+            <p><p><span style="text-decoration:underline; font-weight:bold;">Router</span><br>
+                <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                    enable<br>
+                    configure terminal<br>
+                    hostname R1<br>
+                    enable secret class<br>
+                    username admin password cisco<br>
+                    ip domain name netauto.com<br>
+                    crypto key generate rsa<br>
+                    1024<br>
+                    ip ssh version 2<br>
+                    interface GigabitEthernet0/0<br>
+                    ip address 192.168.1.1 255.255.255.0<br>
+                    no shutdown<br>
+                    exit<br>
+                    line con 0<br>
+                    login local<br>
+                    line vty 0<br>
+                    login local<br>
+                    transport input ssh<br>
+                    end<br>
+                    terminal length 0<br>
+                    copy run start</span>
+            </p>
+            <p><p><span style="text-decoration:underline; font-weight:bold;">Switch</span><br>
+                <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                    enable<br>
+                    configure terminal<br>
+                    hostname S1<br>
+                    enable secret class<br>
+                    username admin password cisco<br>
+                    ip domain-name netauto.com<br>
+                    crypto key generate rsa<br>
+                    1024<br>
+                    ip ssh version 2<br>
+                    interface vlan 1<br>
+                    ip address 192.168.1.2 255.255.255.0<br>
+                    no shutdown<br>
+                    exit<br>
+                    ip default-gateway 192.168.1.1<br>
+                    line con 0<br>
+                    login local<br>
+                    line vty 0<br>
+                    login local<br>
+                    transport input ssh<br>
+                    end<br>
+                    terminal length 0<br>
+                    copy run start</span>
+            </p><br>
+        </li>
+        <li>Be sure you can ping between all devices. Troubleshoot as needed.<br><br></li>
+        <li>Add other devices as needed.</li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 2: Starting Python Files</h2>
+    <ol>
+        <li>Open a Terminal and clone my GitHub repository and then change into that directory:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                git clone https://github.com/Scott4564/python.git<br>
+                cd python</span><br><br>
+                Note: This creates a new folder on your physical machine at C:\Users\Account_Name\python.
+        </li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 3: Connect to a Switch or Router using Python and Netmiko</h2>
+
+    <p>The simplest way to connect to a Cisco device using Python is via telnet, but for most environments, telnet is disabled. The best option is SSH, which we will use for the initial show and configuration ommands.</p>
+
+    <p>The Netmiko library has made it easier to connect to network devices using Python & SSH. This library works across a broad variety of networking devices, including Cisco.<br> Note: Change the IP address, username, and password to what you configured
+        in Part 1.</p>
+    <ol>
+        <li>Run these commands from the Python3 command prompt to show the interfaces on the Router:<br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">from netmiko import ConnectHandler<br>
+                connection = ConnectHandler(device_type='cisco_ios', ip='192.168.1.1', username='admin', password='cisco')<br>
+                print(connection.send_command('show ip int brief'))<br>
+                connection.disconnect()</span><br><br>
+        </li>
+        <li>Run these commands from the Python3 command prompt to show the interfaces on the Switch:<br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                from netmiko import ConnectHandler<br>
+                connection = ConnectHandler(device_type='cisco_ios', ip='192.168.1.2',
+                username='admin', password='cisco')<br>
+                print(connection.send_command('show ip int brief'))<br>
+                connection.disconnect()<br>
+                exit()</span>
+        </li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 4: Connect to a Switch or Router using Python from a Script</h2>
+    <ol>
+        <li>Open and type the following code in a text editor (Nano, VS Code) and save it as show-int.py: Note: The Python3 "She-bang" #!/usr/bin/python3 is always recommended but has been omitted in these examples.<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                import netmiko<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Connect to a Cisco Router using SSH and run show commands</span><br> router = {<br> &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br> &nbsp;&nbsp;&nbsp;&nbsp;'ip': '192.168.1.1',<br> &nbsp;&nbsp;&nbsp;&nbsp;'username':
+            'admin',
+            <br> &nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br> &nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br> }
+            <br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Establish a connection</span><br> connection = netmiko.ConnectHandler(**router)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Show output</span><br> output = connection.send_command('show ip int brief')<br> device = connection.find_prompt()<br> print (device + '\n' + output)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Disconnect</span><br> connection.disconnect()
+            <br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Connect to a Cisco Switch using SSH and run show commands</span><br> switch = {<br> &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br> &nbsp;&nbsp;&nbsp;&nbsp;'ip': '192.168.1.2',<br> &nbsp;&nbsp;&nbsp;&nbsp;'username':
+            'admin',
+            <br> &nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br> &nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br> }
+            <br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Establish a connection</span><br> connection = netmiko.ConnectHandler(**switch)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Show output</span><br> output = connection.send_command('show ip int brief')<br> device = connection.find_prompt()<br> print (device + '\n' + output)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Disconnect</span><br> connection.disconnect()
+            </span><br><br>
+        </li>
+        <li>Run the Python script and you should see an output of the IP interfaces on your Router or Switch
+            <br><br>
+                <table style="text-align:left; margin:0px; padding:10px; left:0px;">
+                    <tbody>
+                    <tr>
+                        <td style="text-align:left;">R1&gt;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left; width:225px;">Interface</td>
+                        <td style="text-align:left; width:150px;">IP-Address</td>
+                        <td style="text-align:left; width:50px;">OK?</td>
+                        <td style="text-align:left; width:100px;">Method</td>
+                        <td style="text-align:left; width:250px;">Status</td>
+                        <td style="text-align:left; width:100px;">Protocol</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">GigabitEthernet0/0</td>
+                        <td style="text-align:left;">192.168.1.1</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">GigabitEthernet0/1</td>
+                        <td style="text-align:left;">192.168.1.1</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">S1></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">Interface</td>
+                        <td style="text-align:left;">IP-Address</td>
+                        <td style="text-align:left;">OK?</td>
+                        <td style="text-align:left;">Method</td>
+                        <td style="text-align:left;">Status</td>
+                        <td style="text-align:left;">Protocol</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">vlan1</td>
+                        <td style="text-align:left;">192.168.1.2</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">UP</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">fastEthernet0/1</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">unset</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">&lt;Output omitted&gt;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">FastEthernet0/24</td>
+                        <td style="text-align:left;">unassigned </td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">unset</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">GigabitEthernet0/1</td>
+                        <td style="text-align:left;">unassigned </td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">unset</td>
+                        <td style="text-align:left;">down</td>
+                        <td style="text-align:left;">down</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">GigabitEthernet0/2</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">unset</td>
+                        <td style="text-align:left;">down</td>
+                        <td style="text-align:left;">down</td>
+                    </tr>
+                    </tbody>
+                </table>
+        </li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 5: Configure an interface on a Cisco Router</h2>
+    <ol>
+        <li>Open and add the following code in a text editor (Nano, VS Code) and save it as write-config.py<br> Note: Copy the Router code from show-int.py and add some configuration information so that your Python script can actually configure the router.<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                import netmiko<br><br>
+                <span style="color:#0000ff; font-weight:normal;">
+                    # Use Netmiko to connect to a Cisco Router using SSH and run simple commands</span><br>
+                    router = {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp; 'ip': '192.168.1.1',<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;'username': 'admin',<br> 
+            		&nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br>
+            		&nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br>
+            		}<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Commands to configure a loopback</span><br>
+                config_commands = ['interface loopback 0', 'ip address 1.1.1.1 255.255.255.255']<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Establish a connection</span><br>
+                connection = netmiko.ConnectHandler(**router)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Enter privileged mode</span><br>
+                connection.enable()<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Run commands</span><br>
+                config = connection.send_config_set(config_commands)<br>
+                print (config)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Show output</span><br>
+                output = connection.send_command('show ip int brief')<br> device = connection.find_prompt()<br> print (device + '\n' + output)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Disconnect</span><br>
+                connection.disconnect()</span><br><br>
+        </li>
+        <li>Run the Python script and you should see an output of the IP interfaces on your Router. python3 write-config.py<br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                config term<br>
+                Enter configuration commands, one per line. End with CNTL/Z.<br>
+                R1(config)#interface loopback 0<br>
+                R1(config-if)#ip address 1.1.1.1 255.255.255.255<br>
+                R1(config-if)#no shutdown<br>
+                R1(config-if)#end</span><br>
+        </li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 6: Configure multiple devices at once with one command</h2>
+    <ol>
+        <li>Add the following code:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                import netmiko<br><br>
+                router = {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'ip': '192.168.1.1',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'username': 'admin',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'command': ['interface loopback 1', 'ip address 2.2.2.2 255.255.255.255', 'interface loopback 2', 'ip address 3.3.3.3 255.255.255.255'],<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'output': 'show ip int brief'<br>
+                }<br><br>
+                switch = {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp; 'ip': '192.168.1.2',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'username': 'admin',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp; 'secret': 'class',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'command': ['vlan 10', 'name TEACHERS', 'vlan 20', 'name STUDENTS', 'vlan 30', 'name ADMINISTRATORS'],<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'output': 'show vlan brief'<br>
+                }<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Create a loop to run commands</span><br> for device in (router, switch):<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Retrieve the configuration commands and fill a variable</span><br> &nbsp;&nbsp;&nbsp;&nbsp;command = device.pop('command')<br> &nbsp;&nbsp;&nbsp;&nbsp;output = device.pop('output')<br> &nbsp;&nbsp;&nbsp;&nbsp;connection
+            = netmiko.ConnectHandler(**device)<br> &nbsp;&nbsp;&nbsp;&nbsp;connection.enable()
+            <br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Send the commands to the devices and view an output</span><br> &nbsp;&nbsp;&nbsp;&nbsp;commands = connection.send_config_set(command)<br> &nbsp;&nbsp;&nbsp;&nbsp;print (commands)<br> &nbsp;&nbsp;&nbsp;&nbsp;
+            outputs = connection.send_command(output)<br> &nbsp;&nbsp;&nbsp;&nbsp;print (outputs)<br> &nbsp;&nbsp;&nbsp;&nbsp;connection.disconnect()
+            </span><br><br>
+        </li>
+        <li>Run the Python script and you should see an output from your Router or Switch.<br>
+                &nbsp;&nbsp;config term<br>
+                &nbsp;&nbsp;Enter configuration commands, one per line. End with CNTL/Z.<br>
+                &nbsp;&nbsp;R1(config)#interface loopback 1<br>
+                &nbsp;&nbsp;R1(config-if)#ip address 2.2.2.2 255.255.255.255<br>
+                &nbsp;&nbsp;R1(config-if)#no shutdown<br>
+                &nbsp;&nbsp;R1(config-if)#interface loopback 2<br>
+                &nbsp;&nbsp;R1(config-if)#ip address 3.3.3.3 255.255.255.255<br>
+                &nbsp;&nbsp;R1(config-if)#no shutdown<br>
+                &nbsp;&nbsp;R1(config-if)#end<br>
+                <table style="text-align:left; margin:0px; padding:10px; left:0px; width:875px;">
+                    <tbody>
+                    <tr>
+                        <td style="text-align:left;">R1#</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left; width:225px;">Interface</td>
+                        <td style="text-align:left; width:150px;">IP-Address</td>
+                        <td style="text-align:left; width:50px;">OK?</td>
+                        <td style="text-align:left; width:100px;">Method</td>
+                        <td style="text-align:left; width:250px;">Status</td>
+                        <td style="text-align:left; width:100px;">Protocol</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">GigabitEthernet0/0</td>
+                        <td style="text-align:left;">192.168.1.1</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">GigabitEthernet0/1</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">administratively down</td>
+                        <td style="text-align:left;">down</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">Loopback0</td>
+                        <td style="text-align:left;">1.1.1.1</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr style="background-color:yellow;">
+                        <td style="text-align:left;">Loopback1</td>
+                        <td style="text-align:left;">1.1.1.1</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    <tr style="background-color:yellow;">
+                        <td style="text-align:left;">Loopback2</td>
+                        <td style="text-align:left;">1.1.1.1</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">manual</td>
+                        <td style="text-align:left;">up</td>
+                        <td style="text-align:left;">up</td>
+                    </tr>
+                    </tbody>
+                </table><br>
+                &nbsp;&nbsp;config term<br>
+                &nbsp;&nbsp;Enter configuration commands, one per line. End with CNTL/Z.<br>
+                &nbsp;&nbsp;S1(config)#vlan 10<br>
+                &nbsp;&nbsp;S1(config-vlan)#name TEACHERS<br>
+                &nbsp;&nbsp;S1(config-vlan)#vlan 20<br>
+                &nbsp;&nbsp;S1(config-vlan)#name STUDENTS<br>
+                &nbsp;&nbsp;S1(config-vlan)#vlan 30<br>
+                &nbsp;&nbsp;S1(config-vlan)#name ADMINISTRATORS<br>
+                &nbsp;&nbsp;S1(config-vlan)#end<br>
+                <table style="text-align:left; margin:0px; padding:10px; left:0px;">
+                    <tbody>
+                    <tr>
+                        <td style="text-align:left;">S1></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left; width:50px;">VLAN</td>
+                        <td style="text-align:left; width:300px;">Name</td>
+                        <td style="text-align:left; width:125px;">Status</td>
+                        <td style="text-align:left; width:400px;">Ports</td>
+                    </tr>
+                    <tr style="vertical-align:top;">
+                        <td style="text-align:left;">1</td>
+                        <td style="text-align:left;">default</td>
+                        <td style="text-align:left;">active</td>
+                        <td style="text-align:left;">Fa0/1, Fa0/2, Fa0/3, Fa0/4, Fa0/5, Fa0/6,<br>
+                                                    Fa0/7, Fa0/8, Fa0/9, Fa0/10, Fa0/11, Fa0/12,<br>
+                                                    Fa0/13, Fa0/14, Fa0/15, Fa0/16, Fa0/17,<br>
+                                                    Fa0/18, Fa0/19, Fa0/20, Fa0/21, Fa0/22,<br>
+                                                    Gi0/1, Gi0/2
+                        </td>
+                    </tr>
+                    <tr style="background-color:yellow;">
+                        <td style="text-align:left;">10</td>
+                        <td style="text-align:left;">TEACHERS</td>
+                        <td style="text-align:left;">active</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    <tr style="background-color:yellow;">
+                        <td style="text-align:left;">20</td>
+                        <td style="text-align:left;">STUDENTS</td>
+                        <td style="text-align:left;">active</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    <tr style="background-color:yellow;">
+                        <td style="text-align:left;">30</td>
+                        <td style="text-align:left;">ADMINISTRATORS</td>
+                        <td style="text-align:left;">active</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">1002</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">1003</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">1004</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;">1005</td>
+                        <td style="text-align:left;">unassigned</td>
+                        <td style="text-align:left;">YES</td>
+                        <td style="text-align:left;">&nbsp;</td>
+                    </tr>
+                    </tbody>
+                </table>
+        </li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 7: Configure device from a file</h2>
+    <ol>
+        <li>If needed, clone your router_config.txt and switch_config.txt files to the Ubuntu subsystem:<br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">ls<br>
+            <span style="color:#000000; font-weight:normal;">
+                config.py&nbsp;&nbsp;&nbsp;
+                <span style="background-color:yellow;">router_config.txt</span>&nbsp;&nbsp;&nbsp;
+                show-config.py&nbsp;&nbsp;&nbsp;
+                show-int.py&nbsp;&nbsp;&nbsp;
+                <span style="background-color:yellow;">switch_config.txt</span>
+            </span></span><br><br>
+        </li>
+        <li>Change the configs to match your device interfaces.<br></li>
+        <li>Add the following code below:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                import netmiko<br><br>
+                router = {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'ip': '192.168.1.1',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'username': 'admin',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'command': 'router_config.txt',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'output': 'show ip int brief'<br>
+                }<br><br>
+                switch = {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'ip': '192.168.1.2',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'username': 'admin',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'command': 'switch_config.txt',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;'output': 'show vlan brief'<br>
+                }<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                # Create a loop to run commands</span><br> 
+                for device in (router, switch):<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Retrieve the configuration commands and fill a variable</span><br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;command = device.pop('command')<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;output = device.pop('output')<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;connection = netmiko.ConnectHandler(**device)<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;connection.enable()
+            <br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Send the commands to the devices and view an output</span><br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;commands = connection.send_config_set(command)<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;print (commands)<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;outputs = connection.send_command(output)<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;print (outputs)<br> 
+                &nbsp;&nbsp;&nbsp;&nbsp;connection.disconnect()
+            </span><br><br>
+        </li>
+        <li>Run the Python script and you should see an output on your Router or Switch.</li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 8: Creating a Webpage to view Interfaces</h2>
+    <ol>
+        <li>Install Django and json2html applications:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                pip3 install Django<br>
+                pip3 install json2html</span><br><br>
+        </li>
+        <li>From the Python directory, add a new project named webint:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                django-admin startproject <span style="color:#ff0000;">webint</span></span><br><br>
+        </li>
+        <li>Change to the webint directory and install ntc-templates and set the path:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                cd webint<br>
+                git clone https://github.com/networktocode/ntc-templates.git<br>
+                export NET_TEXTFSM='./ntc-templates/ntc_templates/templates'</span><br><br>
+        </li>
+        <li>Migrate the settings:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                ls</span><br>
+            <span style="font-family:Consolas, Courier New; font-weight:normal;">
+                db.sqlite3&nbsp;&nbsp;&nbsp;<span style="background-color:yellow;">manage.py</span>&nbsp;&nbsp;&nbsp;ntc-templates&nbsp;&nbsp;&nbsp;webint</span><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                python3 manage.py migrate</span><br><br>
+        </li>
+        <li>Run the server and test the website:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                python3 manage.py runserver</span><br>
+            <span style="font-family:Consolas, Courier New; font-weight:normal;">
+                Watching for file changes with StatReloader<br>
+                Performing system checks...<br>
+                System check identified no issues (0 silenced).<br>
+                April 30, 2020 - 21:43:23<br>
+                Django version 3.0.5, using settings 'showint.settings'<br>
+            <span style="background-color:yellow;">
+                Starting development server at http://127.0.0.1:8000/</span><br> Quit the server with CONTROL-C.</span><br><br>
+        </li>
+        <li>Open a browser and type the URL shown in the output (<b>127.0.0.1:8000/</b>).<br>
+            <img src="./Django.jpg" alt="Djanogo Output" style="border:1px solid #999999;"><br><br>
+        </li>
+        <li>Use CTRL+C in the command prompt to stop the server.<br><br>
+        </li>
+        <li>Change to the next level webint directory.<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                cd webint<br>
+                ls</span><br>
+            <span style="font-family:Consolas, Courier New; font-weight:normal;">
+                __init__.py&nbsp;&nbsp;&nbsp;__pycache__&nbsp;&nbsp;&nbsp;asgi.py&nbsp;&nbsp;&nbsp;settings.py&nbsp;&nbsp;&nbsp;urls.py&nbsp;&nbsp;&nbsp;wsgi.py</span><br><br>
+        </li>
+        <li>Open urls.py and append this code:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                sudo nano urls.py<br>
+                from django.contrib import admin<br>
+                from django.urls import path<br>
+                from . import views<br><br>
+                urlpatterns = [<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;path('admin/', admin.site.urls),<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;path('', views.output, name='output'),<br>
+                ]</span><br><br>
+        </li>
+        <li>
+            Save and close the file.<br><br>
+        </li>
+        <li>Create a new file named <b>views.py</b> and add this code:<br>
+        Note: You can reuse some of the code from show-int.py.<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                sudo nano views.py<br><br>
+                from django.http import HttpResponse<br>
+                import netmiko<br>
+                import json<br>
+                from json2html import *<br>
+                from datetime import datetime<br><br>
+                def output(request):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;router = {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'device_type': 'cisco_ios',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'ip': '192.168.1.1',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'username': 'admin',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'password': 'cisco',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'secret': 'class',<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'command': 'show ip int brief'<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;clicommand = router.pop('command')<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;connection = netmiko.ConnectHandler(**router)<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;connection.enable()<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;output = connection.send_command(clicommand, use_textfsm=True)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Get device name</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;device = connection.find_prompt()<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;connection.disconnect()<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Get the current time</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;t = datetime.now()<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Format the output as a readable HTML page</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;show = json2html.convert(json = output)<br><br>
+            <span style="color:#0000ff; font-weight:normal;">
+                &nbsp;&nbsp;&nbsp;&nbsp;# Display on a webpage</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;return HttpResponse('&lt;center&gt;' + str(t) + '&lt;br&gt;&lt;br&gt;&lt;span style="font-size:20px;"&gt;&lt;b&gt;' + clicommand + ' for ' + str(device) + '&lt;/b&gt;&lt;/span&gt;&lt;br&gt;'+ show)</span><br><br>
+        </li>
+        <li>
+            Save and close the file.<br><br>
+        </li>
+        <li>Back up one level and run the server again:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                cd ..<br>
+                python3 manage.py runserver</span><br><br>
+        </li>
+        <li>Refresh the browser page 127.0.0.1:8000/<br><br>
+        </li>
+        <li>After approximately 30 seconds you should see the results load<br><br>
+            <table style="text-align:left; margin:0px; padding:10px; left:0px; font-size:18px; font-weight:normal; border:1px solid black;">
+                    <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align:left; text-align:center;border:1px solid black;">2020-05-04 17:17:05.325548</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" style="text-align:left;text-align:center;border:1px solid black;"><b>show ip int brief for R1#</b></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left; width:200px;border:1px solid black;"><b>intf</b></td>
+                        <td style="text-align:left; width:150px;border:1px solid black;"><b>ipaddr</b></td>
+                        <td style="text-align:left; width:300px;border:1px solid black;"><b>status</b></td>
+                        <td style="text-align:left; width:100px;border:1px solid black;"><b>proto</b></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;border:1px solid black;">GigabitEthernet0/0</td>
+                        <td style="text-align:left;border:1px solid black;">92.168.1.1</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;border:1px solid black;">GigabitEthernet0/1</td>
+                        <td style="text-align:left;border:1px solid black;">unassigned</td>
+                        <td style="text-align:left;border:1px solid black;">administratively down</td>
+                        <td style="text-align:left;border:1px solid black;">down</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;border:1px solid black;">Loopback0</td>
+                        <td style="text-align:left;border:1px solid black;">1.1.1.1</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;border:1px solid black;">Loopback1</td>
+                        <td style="text-align:left;border:1px solid black;">2.2.2.2</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;border:1px solid black;">Loopback2</td>
+                        <td style="text-align:left;border:1px solid black;">3.3.3.3</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;border:1px solid black;">Loopback3</td>
+                        <td style="text-align:left;border:1px solid black;">4.4.4.4</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                        <td style="text-align:left;border:1px solid black;">up</td>
+                    </tr>
+                    </tbody>
+                </table><br>
+                Note: You can change the show command and see different results.
+        </li>
+    </ol>
+</div>
+
+
+<div style="font-family:arial; font-size:14pt;">
+    <h2 style="color:#0000cc;">Part 9: Backup the Configuration Files Using SSH</h2>
+    <ol>
+        <li>Create a new text file named hosts.txt in the Python folder:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                Python &gt; hosts.txt</span><br><br>
+        </li>
+        <li>Add the IP addresses of all the devices you want to get the configurations:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                192.168.1.1<br>
+                192.168.1.2</span><br><br>
+        </li>
+        <li>Save and close the file.<br><br>
+        </li>
+        <li>Create a new file named credentials.py in the Python folder:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                Python > credentials.py</span><br><br>
+        </li>
+        <li>Add this information code:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                username = "admin"<br>
+                password = "cisco"<br>
+                secret = "class"</span><br><br>
+        </li>
+        <li>Save and close the file.<br><br>
+        </li>
+        <li>Create a new Python script named backup-config-ssh.py<br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                Python &gt; backup-config.py</span><br><br>
+        </li>
+        <li>Add the following code:<br><br>
+            <span style="font-family:Consolas, Courier New; font-weight:bold;">
+                #!/usr/bin/env python3<br>
+                import credentials<br>
+                from netmiko<br>
+                # Retrieve the username, password, and secret<br>
+                user = credentials.username<br>
+                pass = credentials.password<br>
+                sec = credentials.secret<br>
+                # Open the hosts.txt file containing the device IPs<br>
+                devices = open('hosts.txt')<br>
+                # Create a connection string<br>
+                for line in devices:<br>
+                connection = netmiko.ConnectHandler(device_type='cisco_ios', ip=line,<br>
+                username=user, password=pass, secret=sec)
+                # Run commands<br>
+                connection.send_command('terminal length 0')<br>
+                config = connection.send_command('show run')<br>
+                device = connection.find_prompt()<br>
+                # Write config to file<br>
+                File_object = open(device + "-config.txt","w")<br>
+                File_object.writelines(config)<br>
+                connection.disconnect()</span><br><br>
+        </li>
+        <li>Save and run the file.
+        </li>
+    </ol>
+</div>
+</body>
+</html>
