@@ -5,8 +5,8 @@ alias upgrade="sudo apt update && sudo apt dist-upgrade -y && sudo apt autoremov
 alias speedtest="curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -"
 alias myip="curl icanhazip.com"
 alias getready="sudo apt update && sudo apt install curl python3-pip python3-netmiko git-all minicom screen putty software-properties-common wget -y && python3 -m pip install --upgrade pip && pip3 install Django json2html telnetlib3 nornir nornir_napalm jupyter jupyterlab"
-alias mycom="sudo screen /dev/ttyS3 9600 8 N 1"
-alias myssh="ssh admin@192.168.1.1 -o KexAlgorithms=diffie-hellman-group1-sha1 -c aes256-cbc -o StrictHostKeyChecking=no"
+alias R1-com="sudo screen /dev/ttyS3 9600 8 N 1"
+alias R1-ssh="ssh admin@192.168.1.1 -o KexAlgorithms=diffie-hellman-group1-sha1 -c aes256-cbc -o StrictHostKeyChecking=no"
 
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
 sudo install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/
