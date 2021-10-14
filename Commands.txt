@@ -1,0 +1,24 @@
+List USB devices connected:
+
+ls /dev/*USB*
+
+
+
+Open a serial connection using a USB to RJ45 cable:
+
+sudo python3 -m serial.tools.miniterm /dev/ttyUSB0
+OR
+sudo screen /dev/ttyUSB0 9600 
+
+
+Open a SSH connection:
+
+ssh admin@192.168.1.1 -o KexAlgorithms=diffie-hellman-group1-sha1 -c aes256-cbc -o StrictHostKeyChecking=no
+
+Delete previous authentication
+ssh-keygen -f "/home/cisco/.ssh/known_hosts" -R "192.168.1.1
+
+
+
+
+
