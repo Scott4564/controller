@@ -1,3 +1,4 @@
+Add aliases to:
 sudo nano ~/.bashrc
 
 # aliases
@@ -8,6 +9,7 @@ alias getready="sudo apt update && sudo apt install curl python3-pip python3-net
 alias R1-com="sudo screen /dev/ttyS3 9600 8 N 1"
 alias R1-ssh="ssh admin@192.168.1.1 -o KexAlgorithms=diffie-hellman-group1-sha1 -c aes256-cbc -o StrictHostKeyChecking=no"
 
+Add VS Code to Linux:
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
 sudo install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/
 sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
