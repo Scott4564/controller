@@ -5,10 +5,11 @@ ls /dev/*USB*
 
 
 Open a serial connection using a USB to RJ45 cable:
-
-sudo python3 -m serial.tools.miniterm /dev/ttyUSB0
+sudo apt install minicom
+sudo python3 -m serial.tools.miniterm /dev/ttyS3
 OR
-sudo screen /dev/ttyUSB0 9600 
+sudo apt intall screen
+sudo screen /dev/ttyS3 9600 8 N 1
 
 
 Open a SSH connection:
