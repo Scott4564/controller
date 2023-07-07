@@ -11,15 +11,13 @@ headers = {
 }
 
 # Request payload
-payload = json.dumps(
-      {"syslog" : [
+payload = json.dumps({
+      "syslog": [
           {"serverIp": "192.168.100.200"},
           {"serverIp": "33.33.33.33"},
-      ]},
-      {"NTP": [
-            {"serverIp": "192.168.100.250"}
-      ]}
-)
+      ],
+      "ntp": {"serverIp": "192.168.100.250"}
+})
 
 # HTTP request
 response = requests.request("PUT", url, headers=headers, data=payload)
@@ -27,9 +25,10 @@ response = requests.request("PUT", url, headers=headers, data=payload)
 # HTTP response
 print(response.status_code)
 # Response header
-
+print(response.headers)
 # response payload
 result = response.json()
 print (json.dumps(result, indent=4))
 
 
+# https://github.com/Scott4564/controller.git
