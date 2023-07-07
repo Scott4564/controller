@@ -25,3 +25,11 @@ ticket = result["response"]["serviceTicket"]
 # Show results
 print(response.status_code)
 print("Your token is: ", ticket)
+
+#Save key
+with open("apiToken.py", "w") as file:
+  file.write(f"API_TOKEN = '{ticket}'\n")
+  print("API token saved successfully.")
+
+def save_api_token(token):
+    save_api_token(api_token)

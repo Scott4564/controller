@@ -1,12 +1,13 @@
 import requests
 import json
+import apiToken
 
 token = "NC-6-785f6d9d7a5d47da8f7e-nbi"
 url = "http://127.0.0.1:58000/api/v1/wan/network-wide-setting"
 
 # Request header
 headers = {
-      "X-Auth-Token": token,
+      "X-Auth-Token": apiToken.API_TOKEN,
       "Content-Type": "application/json"
 }
 

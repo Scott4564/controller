@@ -14,7 +14,8 @@ print(response.status_code)
 # Show response header
 print(response.headers)
 # Show results
-print(response.json())
+#result = response.json()
+print(response)
 
 # Close connection
 response.close()
