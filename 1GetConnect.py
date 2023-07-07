@@ -9,5 +9,12 @@ payload = ""
 # HTTP request
 response = requests.request("GET", url, headers=headers, data=payload)
 
-# Show results
+# Show status
 print(response.status_code)
+# Show response header
+print(response.headers)
+# Show results
+print(response.json())
+
+# Close connection
+response.close()

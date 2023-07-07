@@ -16,7 +16,8 @@ payload = json.dumps({
           {"serverIp": "192.168.100.200"},
           {"serverIp": "33.33.33.33"},
       ],
-      "ntp": {"serverIp": "192.168.100.250"}
+      "ntp": {"serverIp": "192.168.100.250"},
+      "dns": {"serverIp": "192.168.100.100"}
 })
 
 # HTTP request
@@ -30,5 +31,7 @@ print(response.headers)
 result = response.json()
 print (json.dumps(result, indent=4))
 
+# Close connection
+response.close()
 
 # https://github.com/Scott4564/controller.git
